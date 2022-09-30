@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.NestingKind;
+import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
@@ -36,6 +37,7 @@ import javax.lang.model.util.ElementFilter;
  *
  * @author Stephane Nicoll
  * @author Phillip Webb
+ * @author Pavel Anisimov
  */
 class PropertyDescriptorResolver {
 
@@ -83,8 +85,9 @@ class PropertyDescriptorResolver {
 			ExecutableElement getter = members.getPublicGetter(name, propertyType);
 			ExecutableElement setter = members.getPublicSetter(name, propertyType);
 			VariableElement field = members.getFields().get(name);
+			RecordComponentElement recordComponent = members.getRecordComponents().get(name);
 			register(candidates, new ConstructorParameterPropertyDescriptor(type, factoryMethod, parameter, name,
-					propertyType, field, getter, setter));
+					propertyType, field, recordComponent, getter, setter));
 		});
 		return candidates.values().stream();
 	}

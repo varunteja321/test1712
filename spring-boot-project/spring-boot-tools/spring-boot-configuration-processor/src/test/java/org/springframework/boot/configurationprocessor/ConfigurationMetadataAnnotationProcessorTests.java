@@ -462,4 +462,45 @@ class ConfigurationMetadataAnnotationProcessorTests extends AbstractMetadataGene
 		assertThat(metadata).doesNotHave(Metadata.withProperty("multi.some-integer"));
 	}
 
+	@Test
+	@EnabledForJreRange(min = JRE.JAVA_16)
+	void recordPropertiesWithDescriptions(@TempDir File temp) throws IOException {
+		File exampleRecord = new File(temp, "ExampleRecord.java");
+		try (PrintWriter writer = new PrintWriter(new FileWriter(exampleRecord))) {
+			writer.println("/**");
+			writer.println(" * ExampleRecord Javadoc sample");
+			writer.println(" *");
+			writer.println(" * @author Pavel Anisimov");
+			writer.println(" * @param someString very long description that doesn't fit");
+			writer.println(" * single line");
+			writer.println(" * @param someInteger description with @param and @ pitfalls");
+			writer.println(" *    @param   someBoolean   description with extra spaces");
+			writer.println(" *@param someLong description without space after asterisk");
+			writer.println(" * @since 1.0.0");
+			writer.println(" * @param someByte last description in Javadoc");
+			writer.println(" */");
+			writer.println(
+					"@org.springframework.boot.configurationsample.ConfigurationProperties(\"record.descriptions\")");
+			writer.println("public record ExampleRecord(");
+			writer.println("String someString,");
+			writer.println("Integer someInteger,");
+			writer.println("Boolean someBoolean,");
+			writer.println("Long someLong,");
+			writer.println("Byte someByte");
+			writer.println(") {");
+			writer.println("}");
+		}
+		ConfigurationMetadata metadata = compile(exampleRecord);
+		assertThat(metadata).has(Metadata.withProperty("record.descriptions.some-string", String.class)
+				.withDescription("very long description that doesn't fit single line"));
+		assertThat(metadata).has(Metadata.withProperty("record.descriptions.some-integer", Integer.class)
+				.withDescription("description with @param and @ pitfalls"));
+		assertThat(metadata).has(Metadata.withProperty("record.descriptions.some-boolean", Boolean.class)
+				.withDescription("description with extra spaces"));
+		assertThat(metadata).has(Metadata.withProperty("record.descriptions.some-long", Long.class)
+				.withDescription("description without space after asterisk"));
+		assertThat(metadata).has(Metadata.withProperty("record.descriptions.some-byte", Byte.class)
+				.withDescription("last description in Javadoc"));
+	}
+
 }
