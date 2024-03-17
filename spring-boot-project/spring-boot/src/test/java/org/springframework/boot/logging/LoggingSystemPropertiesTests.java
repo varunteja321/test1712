@@ -155,6 +155,25 @@ class LoggingSystemPropertiesTests {
 		assertThat(getSystemProperty(LoggingSystemProperty.APPLICATION_NAME)).isNull();
 	}
 
+	@Test
+	void loggedApplicationGroupWhenHasApplicationGroup() {
+		new LoggingSystemProperties(new MockEnvironment().withProperty("spring.application.group", "test")).apply(null);
+		assertThat(getSystemProperty(LoggingSystemProperty.APPLICATION_GROUP)).isEqualTo("[test] ");
+	}
+
+	@Test
+	void loggedApplicationGroupWhenHasNoApplicationGroup() {
+		new LoggingSystemProperties(new MockEnvironment()).apply(null);
+		assertThat(getSystemProperty(LoggingSystemProperty.APPLICATION_GROUP)).isNull();
+	}
+
+	@Test
+	void loggedApplicationGroupWhenApplicationGroupLoggingDisabled() {
+		new LoggingSystemProperties(new MockEnvironment().withProperty("spring.application.group", "test")
+			.withProperty("logging.include-application-group", "false")).apply(null);
+		assertThat(getSystemProperty(LoggingSystemProperty.APPLICATION_GROUP)).isNull();
+	}
+
 	private Environment environment(String key, Object value) {
 		StandardEnvironment environment = new StandardEnvironment();
 		environment.getPropertySources().addLast(new MapPropertySource("test", Collections.singletonMap(key, value)));
