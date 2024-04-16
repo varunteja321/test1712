@@ -36,6 +36,7 @@ import org.apache.pulsar.common.schema.SchemaType;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
+import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException;
 import org.springframework.util.Assert;
 
 /**
@@ -101,6 +102,14 @@ public class PulsarProperties {
 
 	public Template getTemplate() {
 		return this.template;
+	}
+
+	/**
+	 * Whether transactions are enabled for either the template or the listener.
+	 * @return whether transactions are enabled for either the template or the listener
+	 */
+	boolean isTransactionEnabled() {
+		return this.template.getTransaction().isEnabled() || this.listener.getTransaction().isEnabled();
 	}
 
 	public static class Client {
@@ -763,6 +772,11 @@ public class PulsarProperties {
 		 */
 		private boolean observationEnabled;
 
+		/**
+		 * Transaction settings.
+		 */
+		private final Transaction transaction = new ListenerTransaction();
+
 		public SchemaType getSchemaType() {
 			return this.schemaType;
 		}
@@ -777,6 +791,10 @@ public class PulsarProperties {
 
 		public void setObservationEnabled(boolean observationEnabled) {
 			this.observationEnabled = observationEnabled;
+		}
+
+		public Transaction getTransaction() {
+			return this.transaction;
 		}
 
 	}
@@ -858,12 +876,100 @@ public class PulsarProperties {
 		 */
 		private boolean observationsEnabled;
 
+		/**
+		 * Transaction settings.
+		 */
+		private final Transaction transaction = new TemplateTransaction();
+
 		public boolean isObservationsEnabled() {
 			return this.observationsEnabled;
 		}
 
 		public void setObservationsEnabled(boolean observationsEnabled) {
 			this.observationsEnabled = observationsEnabled;
+		}
+
+		public Transaction getTransaction() {
+			return this.transaction;
+		}
+
+	}
+
+	public abstract static class Transaction {
+
+		/**
+		 * Whether transactions are enabled for the component.
+		 */
+		private boolean enabled;
+
+		/**
+		 * Whether the component requires transactions.
+		 */
+		private boolean required;
+
+		/**
+		 * Duration representing the transaction timeout - null to use default timeout of
+		 * the underlying transaction system, or none if timeouts are not supported.
+		 */
+		private Duration timeout;
+
+		public boolean isEnabled() {
+			return this.enabled;
+		}
+
+		public void setEnabled(boolean enabled) {
+			this.enabled = enabled;
+		}
+
+		public boolean isRequired() {
+			return this.required;
+		}
+
+		public void setRequired(boolean required) {
+			this.required = required;
+		}
+
+		public Duration getTimeout() {
+			return this.timeout;
+		}
+
+		public void setTimeout(Duration timeout) {
+			this.timeout = timeout;
+		}
+
+		void validate() {
+			if (this.required && !this.enabled) {
+				String requiredProp = "%s.required".formatted(this.propertyPath());
+				String enabledProp = "%s.enabled".formatted(this.propertyPath());
+				throw new InvalidConfigurationPropertyValueException(requiredProp, this.required,
+						"Transactions must be enabled in order to be required. "
+								+ "Either set %s to 'true' or make transactions optional by setting %s to 'false'"
+									.formatted(enabledProp, requiredProp));
+			}
+		}
+
+		/**
+		 * Gets the property path that the transaction properties are mapped to.
+		 * @return the property path that the transaction properties are mapped to
+		 */
+		protected abstract String propertyPath();
+
+	}
+
+	static class TemplateTransaction extends Transaction {
+
+		@Override
+		protected String propertyPath() {
+			return "spring.pulsar.template.transaction";
+		}
+
+	}
+
+	static class ListenerTransaction extends Transaction {
+
+		@Override
+		protected String propertyPath() {
+			return "spring.pulsar.listener.transaction";
 		}
 
 	}

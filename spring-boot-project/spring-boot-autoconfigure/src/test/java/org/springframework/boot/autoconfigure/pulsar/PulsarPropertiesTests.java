@@ -355,9 +355,15 @@ class PulsarPropertiesTests {
 			Map<String, String> map = new HashMap<>();
 			map.put("spring.pulsar.listener.schema-type", "avro");
 			map.put("spring.pulsar.listener.observation-enabled", "true");
+			map.put("spring.pulsar.listener.transaction.enabled", "true");
+			map.put("spring.pulsar.listener.transaction.required", "true");
+			map.put("spring.pulsar.listener.transaction.timeout", "60s");
 			PulsarProperties.Listener properties = bindPropeties(map).getListener();
 			assertThat(properties.getSchemaType()).isEqualTo(SchemaType.AVRO);
 			assertThat(properties.isObservationEnabled()).isTrue();
+			assertThat(properties.getTransaction().isEnabled()).isTrue();
+			assertThat(properties.getTransaction().isRequired()).isTrue();
+			assertThat(properties.getTransaction().getTimeout()).isEqualTo(Duration.ofSeconds(60));
 		}
 
 	}
@@ -390,8 +396,54 @@ class PulsarPropertiesTests {
 		void bind() {
 			Map<String, String> map = new HashMap<>();
 			map.put("spring.pulsar.template.observations-enabled", "true");
+			map.put("spring.pulsar.template.transaction.enabled", "true");
+			map.put("spring.pulsar.template.transaction.required", "true");
+			map.put("spring.pulsar.template.transaction.timeout", "60s");
 			PulsarProperties.Template properties = bindPropeties(map).getTemplate();
 			assertThat(properties.isObservationsEnabled()).isTrue();
+			assertThat(properties.getTransaction().isEnabled()).isTrue();
+			assertThat(properties.getTransaction().isRequired()).isTrue();
+			assertThat(properties.getTransaction().getTimeout()).isEqualTo(Duration.ofSeconds(60));
+		}
+
+	}
+
+	@Nested
+	class TransactionProperties {
+
+		@Test
+		void transactionsEnabledWhenListenerAndTemplateBothEnabled() {
+			PulsarProperties properties = new PulsarProperties();
+			properties.getListener().getTransaction().setEnabled(true);
+			properties.getTemplate().getTransaction().setEnabled(true);
+			assertThat(properties.isTransactionEnabled()).isTrue();
+
+		}
+
+		@Test
+		void transactionsEnabledWhenListenerEnabledAndTemplateDisabled() {
+			PulsarProperties properties = new PulsarProperties();
+			properties.getListener().getTransaction().setEnabled(true);
+			properties.getTemplate().getTransaction().setEnabled(false);
+			assertThat(properties.isTransactionEnabled()).isTrue();
+
+		}
+
+		@Test
+		void transactionsEnabledWhenListenerDisabledAndTemplateEnabled() {
+			PulsarProperties properties = new PulsarProperties();
+			properties.getListener().getTransaction().setEnabled(false);
+			properties.getTemplate().getTransaction().setEnabled(true);
+			assertThat(properties.isTransactionEnabled()).isTrue();
+
+		}
+
+		void transactionsDisabledWhenListenerAndTemplateBothDisabled() {
+			PulsarProperties properties = new PulsarProperties();
+			properties.getListener().getTransaction().setEnabled(false);
+			properties.getTemplate().getTransaction().setEnabled(false);
+			assertThat(properties.isTransactionEnabled()).isFalse();
+
 		}
 
 	}
